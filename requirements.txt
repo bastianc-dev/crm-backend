@@ -10,4 +10,4 @@ email-validator
 PyJWT
 python-multipart
 pytest
-httpx
+httpx2
