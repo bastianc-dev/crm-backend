@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -12,6 +13,7 @@ def create_lead(
     estado: str,
     assigned_user_id: int,
     email: str,
+    created_at: datetime | None = None,
 ) -> Lead:
     lead = Lead(
         nombre=nombre,
@@ -23,6 +25,10 @@ def create_lead(
         notas=None,
         assigned_user_id=assigned_user_id,
     )
+
+    if created_at is not None:
+        lead.created_at = created_at
+        lead.updated_at = created_at
 
     db_session.add(lead)
     db_session.commit()
@@ -216,3 +222,54 @@ def test_invalid_limit_returns_422(
     )
 
     assert response.status_code == 422
+
+def test_filter_leads_by_created_at_range(
+    client: TestClient,
+    db_session: Session,
+    admin_headers: dict[str, str],
+    employee_user: User,
+):
+    january_lead = create_lead(
+        db_session,
+        nombre="Lead Enero",
+        empresa="ACME",
+        estado="Nuevo",
+        assigned_user_id=employee_user.id,
+        email="enero@test.com",
+        created_at=datetime(2026, 1, 10, tzinfo=UTC),
+    )
+
+    february_lead = create_lead(
+        db_session,
+        nombre="Lead Febrero",
+        empresa="ACME",
+        estado="Nuevo",
+        assigned_user_id=employee_user.id,
+        email="febrero@test.com",
+        created_at=datetime(2026, 2, 10, tzinfo=UTC),
+    )
+
+    response = client.get(
+        "/leads?created_from=2026-02-01&created_to=2026-02-28",
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+
+    returned_ids = [item["id"] for item in response.json()["items"]]
+
+    assert february_lead.id in returned_ids
+    assert january_lead.id not in returned_ids
+
+
+def test_invalid_created_at_range_returns_400(
+    client: TestClient,
+    admin_headers: dict[str, str],
+):
+    response = client.get(
+        "/leads?created_from=2026-03-01&created_to=2026-02-01",
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Rango de fechas inválido"

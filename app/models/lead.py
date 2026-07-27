@@ -33,6 +33,7 @@ class Lead(Base):
     empresa: Mapped[str | None] = mapped_column(
         String(150),
         nullable=True,
+        index=True,
     )
 
     cargo: Mapped[str | None] = mapped_column(
@@ -45,6 +46,7 @@ class Lead(Base):
         nullable=False,
         default="Nuevo",
         server_default="Nuevo",
+        index=True,
     )
 
     notas: Mapped[str | None] = mapped_column(
@@ -56,6 +58,7 @@ class Lead(Base):
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
+        index=True,
     )
 
     updated_at: Mapped[datetime] = mapped_column(
@@ -63,6 +66,7 @@ class Lead(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+        index=True,
     )
 
     assigned_user_id: Mapped[int] = mapped_column(

@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -16,6 +17,7 @@ from app.schemas.lead import (
 from app.services import lead_service
 from app.services.lead_service import (
     AssignedUserNotFoundError,
+    InvalidDateRangeFilterError,
     InvalidLeadStatusFilterError,
     LeadNotFoundError,
     PermissionDeniedError,
@@ -82,6 +84,8 @@ def get_leads(
     estado: str | None = Query(default=None, min_length=1, max_length=30),
     usuario: int | None = Query(default=None, gt=0),
     empresa: str | None = Query(default=None, min_length=1, max_length=150),
+    created_from: date | None = Query(default=None),
+    created_to: date | None = Query(default=None),
     sort: LeadSortField = Query(default="created_at"),
     order: SortOrder = Query(default="desc"),
     page: int = Query(default=1, ge=1),
@@ -99,6 +103,8 @@ def get_leads(
             estado=estado,
             usuario=usuario,
             empresa=empresa,
+            created_from=created_from,
+            created_to=created_to,
             sort=sort,
             order=order,
         )
@@ -107,6 +113,12 @@ def get_leads(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Estado inválido",
+        )
+
+    except InvalidDateRangeFilterError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Rango de fechas inválido",
         )
 
     except PermissionDeniedError:

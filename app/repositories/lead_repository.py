@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -38,6 +40,8 @@ def _apply_filters(
     estado: str | None = None,
     assigned_user_id: int | None = None,
     empresa: str | None = None,
+    created_from: datetime | None = None,
+    created_to: datetime | None = None,
 ):
     if estado is not None:
         statement = statement.where(Lead.estado == estado)
@@ -50,6 +54,12 @@ def _apply_filters(
 
         if empresa:
             statement = statement.where(Lead.empresa.ilike(f"%{empresa}%"))
+
+    if created_from is not None:
+        statement = statement.where(Lead.created_at >= created_from)
+
+    if created_to is not None:
+        statement = statement.where(Lead.created_at < created_to)
 
     return statement
 
@@ -72,6 +82,8 @@ def _build_filtered_leads_statement(
     estado: str | None = None,
     assigned_user_id: int | None = None,
     empresa: str | None = None,
+    created_from: datetime | None = None,
+    created_to: datetime | None = None,
 ):
     statement = select(Lead)
 
@@ -82,6 +94,8 @@ def _build_filtered_leads_statement(
         estado=estado,
         assigned_user_id=assigned_user_id,
         empresa=empresa,
+        created_from=created_from,
+        created_to=created_to,
     )
 
     return statement
@@ -99,6 +113,8 @@ def get_leads(
     estado: str | None = None,
     assigned_user_id: int | None = None,
     empresa: str | None = None,
+    created_from: datetime | None = None,
+    created_to: datetime | None = None,
     sort: str = "created_at",
     order: str = "desc",
 ) -> tuple[list[Lead], int]:
@@ -107,6 +123,8 @@ def get_leads(
         estado=estado,
         assigned_user_id=assigned_user_id,
         empresa=empresa,
+        created_from=created_from,
+        created_to=created_to,
     )
 
     count_statement = select(func.count()).select_from(

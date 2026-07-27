@@ -1,3 +1,4 @@
+from datetime import UTC, date, datetime, time, timedelta
 from math import ceil
 
 from sqlalchemy.orm import Session
@@ -21,6 +22,9 @@ class PermissionDeniedError(Exception):
 
 
 class InvalidLeadStatusFilterError(Exception):
+    pass
+
+class InvalidDateRangeFilterError(Exception):
     pass
 
 
@@ -57,6 +61,33 @@ def _normalize_estado_filter(estado: str | None) -> str | None:
         raise InvalidLeadStatusFilterError
 
     return normalized_estado
+
+def _build_created_at_range(
+    created_from: date | None,
+    created_to: date | None,
+) -> tuple[datetime | None, datetime | None]:
+    if created_from is not None and created_to is not None:
+        if created_from > created_to:
+            raise InvalidDateRangeFilterError
+
+    start_datetime = None
+    end_datetime = None
+
+    if created_from is not None:
+        start_datetime = datetime.combine(
+            created_from,
+            time.min,
+            tzinfo=UTC,
+        )
+
+    if created_to is not None:
+        end_datetime = datetime.combine(
+            created_to + timedelta(days=1),
+            time.min,
+            tzinfo=UTC,
+        )
+
+    return start_datetime, end_datetime
 
 
 def create_lead(
@@ -98,10 +129,16 @@ def get_leads(
     estado: str | None = None,
     usuario: int | None = None,
     empresa: str | None = None,
+    created_from: date | None = None,
+    created_to: date | None = None,
     sort: str = "created_at",
     order: str = "desc",
 ) -> dict:
     normalized_estado = _normalize_estado_filter(estado)
+    created_from_datetime, created_to_datetime = _build_created_at_range(
+    created_from,
+    created_to,
+)
 
     if current_user.rol == "admin":
         assigned_user_id = usuario
@@ -122,6 +159,8 @@ def get_leads(
         estado=normalized_estado,
         assigned_user_id=assigned_user_id,
         empresa=empresa,
+        created_from=created_from_datetime,
+        created_to=created_to_datetime,
         sort=sort,
         order=order,
     )

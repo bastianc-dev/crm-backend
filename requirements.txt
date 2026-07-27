@@ -11,3 +11,4 @@ PyJWT
 python-multipart
 pytest
 httpx2
+pytest-cov
