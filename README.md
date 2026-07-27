@@ -25,6 +25,10 @@ API backend para un CRM simple de gestión de leads. El proyecto permite registr
 * Tests automatizados con Pytest.
 * Entorno Docker con FastAPI y PostgreSQL.
 * Documentación automática con Swagger.
+* Filtros por fecha de creación.
+* Script para crear usuario administrador inicial.
+* Cobertura de tests.
+* Integración continua con GitHub Actions.
 
 ---
 
@@ -336,6 +340,15 @@ docker compose down -v
 
 ---
 
+## Crear usuario administrador inicial
+
+El endpoint `/register` crea usuarios con rol `employee` por seguridad. Para crear el primer administrador se incluye un script:
+
+```bash
+python scripts/create_admin.py
+
+---
+
 ## Endpoints principales
 
 ### Auth
@@ -448,6 +461,13 @@ GET /leads?usuario=3
 GET /leads?estado=ganado&empresa=google
 ```
 
+### Filtros por fecha
+
+```text
+GET /leads?created_from=2026-07-01
+GET /leads?created_to=2026-07-31
+GET /leads?created_from=2026-07-01&created_to=2026-07-31
+
 ### Ordenamiento
 
 ```text
@@ -551,13 +571,33 @@ pytest
 Resultado actual:
 
 ```text
-31 passed
+33 passed
 ```
 
 La base de datos de tests usa:
 
 ```env
 TEST_DATABASE_URL=postgresql+psycopg://crm_user:crm_password@localhost:5433/crm_test_db
+```
+
+---
+
+## Integración continua
+
+El proyecto incluye un workflow de GitHub Actions que ejecuta:
+
+* instalación de dependencias;
+* migraciones con Alembic;
+* verificación de migraciones pendientes;
+* tests automatizados;
+* reporte de cobertura en terminal.
+
+El workflow se ejecuta en cada `push` a la rama `main` y en cada pull request.
+
+El archivo de configuración se encuentra en:
+
+```text
+.github/workflows/tests.yml
 ```
 
 ---
@@ -690,5 +730,3 @@ Posibles mejoras futuras:
 * notas separadas por lead;
 * dashboard de estadísticas;
 * recuperación de contraseña;
-* seed automático para crear el primer admin;
-* CI con GitHub Actions.
