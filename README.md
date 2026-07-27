@@ -346,6 +346,17 @@ El endpoint `/register` crea usuarios con rol `employee` por seguridad. Para cre
 
 ```bash
 python scripts/create_admin.py
+```
+
+El script usa estas variables:
+
+```env
+FIRST_ADMIN_NAME=Admin
+FIRST_ADMIN_EMAIL=admin@example.com
+FIRST_ADMIN_PASSWORD=change_me
+```
+
+Si el usuario ya existe, el script lo activa y lo convierte en admin.
 
 ---
 
@@ -467,6 +478,9 @@ GET /leads?estado=ganado&empresa=google
 GET /leads?created_from=2026-07-01
 GET /leads?created_to=2026-07-31
 GET /leads?created_from=2026-07-01&created_to=2026-07-31
+```
+
+`created_from` y `created_to` filtran por la fecha de creación del lead.
 
 ### Ordenamiento
 
