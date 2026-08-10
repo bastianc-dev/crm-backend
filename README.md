@@ -1,6 +1,6 @@
-# CRM Backend API
+# CRM de Leads
 
-API backend para un CRM simple de gestión de leads. El proyecto permite registrar usuarios, iniciar sesión, gestionar clientes potenciales, asignarlos a empleados, filtrar información y controlar permisos según rol.
+Aplicación web y API backend para un CRM simple de gestión de leads. El proyecto permite registrar usuarios, iniciar sesión, gestionar clientes potenciales, asignarlos a empleados, filtrar información y controlar permisos según rol.
 
 ---
 
@@ -29,6 +29,11 @@ API backend para un CRM simple de gestión de leads. El proyecto permite registr
 * Script para crear usuario administrador inicial.
 * Cobertura de tests.
 * Integración continua con GitHub Actions.
+* Creación de leads sin exponer ids internos en la interfaz.
+* Dashboard con resumen y pipeline por estado.
+* Endpoint `/me` para obtener el usuario autenticado.
+* Modo demo para probar como administrador o empleado.
+* Interfaz web visual para login, registro y gestión de leads.
 
 ---
 
@@ -77,6 +82,7 @@ Puede:
 * editar sus propios leads;
 * cambiar el estado de sus leads;
 * buscar, filtrar, ordenar y paginar solo dentro de sus leads.
+* eliminar sus propios leads;
 
 No puede:
 
@@ -86,7 +92,7 @@ No puede:
 * ver leads de otros empleados;
 * editar leads ajenos;
 * reasignar leads;
-* eliminar leads.
+* eliminar leads ajenos.
 
 ---
 
@@ -213,6 +219,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 
 LOG_LEVEL=INFO
+DEMO_MODE=false
+DEMO_ADMIN_EMAIL=admin.demo@test.com
+DEMO_EMPLOYEE_EMAIL=employee.demo@test.com
+DEMO_PASSWORD=password123
 ```
 
 ### Descripción de variables
@@ -292,10 +302,16 @@ Ejecuta la API:
 uvicorn app.main:app --reload
 ```
 
-La API quedará disponible en:
+La interfaz web quedará disponible en:
 
 ```text
 http://127.0.0.1:8000
+```
+
+El endpoint de salud de la API está en:
+
+```text
+http://127.0.0.1:8000/api/health
 ```
 
 La documentación Swagger estará en:
@@ -340,7 +356,7 @@ docker compose down -v
 
 ---
 
-## Crear usuario administrador inicial
+### Crear usuario administrador inicial
 
 El endpoint `/register` crea usuarios con rol `employee` por seguridad. Para crear el primer administrador se incluye un script:
 
@@ -352,11 +368,39 @@ El script usa estas variables:
 
 ```env
 FIRST_ADMIN_NAME=Admin
-FIRST_ADMIN_EMAIL=admin@example.com
+FIRST_ADMIN_EMAIL=admin.test@crm-demo.app
 FIRST_ADMIN_PASSWORD=change_me
 ```
 
 Si el usuario ya existe, el script lo activa y lo convierte en admin.
+
+---
+
+## Modo demo
+
+El modo demo permite que un reclutador o visitante pruebe la aplicación sin crear una cuenta manualmente.
+
+Variables necesarias:
+
+```env
+DEMO_MODE=true
+DEMO_ADMIN_EMAIL=admin.demo@test.com
+DEMO_EMPLOYEE_EMAIL=employee.demo@test.com
+DEMO_PASSWORD=password123
+```
+
+Con `DEMO_MODE=true`, los botones de demo de la pantalla de login crean o actualizan usuarios demo y cargan datos iniciales si todavía no existen.
+
+También se puede preparar la demo desde consola:
+
+```bash
+python scripts/seed_demo.py
+```
+
+Roles de demo:
+
+- `Admin Demo`: puede ver usuarios, leads de todos, reasignar y eliminar.
+- `Empleado Demo`: solo puede ver y editar sus propios leads.
 
 ---
 
@@ -389,6 +433,15 @@ Ejemplo de respuesta de login:
   "token_type": "bearer"
 }
 ```
+
+---
+
+### Demo
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `POST` | `/demo/login/admin` | Entra como administrador demo. |
+| `POST` | `/demo/login/employee` | Entra como empleado demo. |
 
 ---
 
@@ -428,18 +481,18 @@ Los endpoints de leads requieren autenticación.
 | `GET`    | `/leads`           | Lista leads con búsqueda, filtros, ordenamiento y paginación. |
 | `GET`    | `/leads/{lead_id}` | Obtiene un lead por id.                                       |
 | `PATCH`  | `/leads/{lead_id}` | Actualiza un lead.                                            |
-| `DELETE` | `/leads/{lead_id}` | Elimina un lead. Solo admin.                                  |
+| `DELETE` | `/leads/{lead_id}` | Elimina un lead. Admin puede eliminar leads accesibles; employee solo sus propios leads. |                               |
 
 Ejemplo de creación de lead:
 
 ```json
 {
-  "nombre": "Juan Pérez",
-  "email": "juan@test.com",
+  "nombre": "Lead de ejemplo",
+  "email": "lead@example.com",
   "telefono": "+56912345678",
-  "empresa": "ACME",
-  "cargo": "Gerente",
-  "notas": "Interesado en el servicio básico.",
+  "empresa": "Empresa de ejemplo",
+  "cargo": "Contacto comercial",
+  "notas": "Información inicial del lead.",
   "assigned_user_id": 2
 }
 ```
@@ -585,7 +638,7 @@ pytest
 Resultado actual:
 
 ```text
-33 passed
+36 passed
 ```
 
 La base de datos de tests usa:
@@ -631,6 +684,10 @@ El nivel de logging se configura con:
 
 ```env
 LOG_LEVEL=INFO
+DEMO_MODE=false
+DEMO_ADMIN_EMAIL=admin.demo@test.com
+DEMO_EMPLOYEE_EMAIL=employee.demo@test.com
+DEMO_PASSWORD=password123
 ```
 
 Los logs se ven en consola durante desarrollo y también en Docker:
@@ -674,6 +731,10 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 LOG_LEVEL=INFO
+DEMO_MODE=false
+DEMO_ADMIN_EMAIL=admin.demo@test.com
+DEMO_EMPLOYEE_EMAIL=employee.demo@test.com
+DEMO_PASSWORD=password123
 ```
 
 URL pública:
@@ -738,9 +799,9 @@ Incluye:
 
 Posibles mejoras futuras:
 
-* frontend web;
-* envío de emails;
+* workspaces para separar equipos u organizaciones;
+* invitaciones de usuarios por email;
 * historial de cambios de leads;
 * notas separadas por lead;
-* dashboard de estadísticas;
 * recuperación de contraseña;
+* vista kanban arrastrable para mover leads entre estados.

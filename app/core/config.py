@@ -12,6 +12,11 @@ class Settings(BaseSettings):
 
     log_level: str = "INFO"
 
+    demo_mode: bool = False
+    demo_admin_email: str = "admin.demo@test.com"
+    demo_employee_email: str = "employee.demo@test.com"
+    demo_password: str = "password123"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

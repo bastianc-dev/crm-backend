@@ -18,12 +18,12 @@ class LeadCreate(BaseModel):
     nombre: str = Field(
         min_length=1,
         max_length=150,
-        examples=["Juan Pérez"],
+        examples=["Lead de ejemplo"],
     )
 
     email: EmailStr | None = Field(
         default=None,
-        examples=["juan@example.com"],
+        examples=["lead@example.com"],
     )
 
     telefono: str | None = Field(
@@ -35,22 +35,28 @@ class LeadCreate(BaseModel):
     empresa: str | None = Field(
         default=None,
         max_length=150,
-        examples=["ACME"],
+        examples=["Empresa de ejemplo"],
     )
 
     cargo: str | None = Field(
         default=None,
         max_length=100,
-        examples=["Gerente"],
+        examples=["Contacto comercial"],
+    )
+
+    estado: LeadStatus = Field(
+        default="Nuevo",
+        examples=["Nuevo"],
     )
 
     notas: str | None = Field(
         default=None,
         max_length=2000,
-        examples=["Interesado en el servicio básico."],
+        examples=["Información inicial del lead."],
     )
 
-    assigned_user_id: int = Field(
+    assigned_user_id: int | None = Field(
+        default=None,
         gt=0,
         examples=[1],
     )
@@ -79,12 +85,12 @@ class LeadUpdate(BaseModel):
         default=None,
         min_length=1,
         max_length=150,
-        examples=["Juan Pérez Actualizado"],
+        examples=["Lead actualizado"],
     )
 
     email: EmailStr | None = Field(
         default=None,
-        examples=["juan@example.com"],
+        examples=["lead@example.com"],
     )
 
     telefono: str | None = Field(
@@ -96,13 +102,13 @@ class LeadUpdate(BaseModel):
     empresa: str | None = Field(
         default=None,
         max_length=150,
-        examples=["ACME Chile"],
+        examples=["Empresa actualizada"],
     )
 
     cargo: str | None = Field(
         default=None,
         max_length=100,
-        examples=["Director Comercial"],
+        examples=["Responsable comercial"],
     )
 
     estado: LeadStatus | None = Field(
@@ -113,7 +119,7 @@ class LeadUpdate(BaseModel):
     notas: str | None = Field(
         default=None,
         max_length=2000,
-        examples=["Se llamó al cliente y pidió más información."],
+        examples=["Se realizó seguimiento y falta próxima acción."],
     )
 
     assigned_user_id: int | None = Field(

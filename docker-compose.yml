@@ -31,6 +31,10 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
       REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS}
       LOG_LEVEL: ${LOG_LEVEL}
+      DEMO_MODE: ${DEMO_MODE:-false}
+      DEMO_ADMIN_EMAIL: ${DEMO_ADMIN_EMAIL:-admin.demo@test.com}
+      DEMO_EMPLOYEE_EMAIL: ${DEMO_EMPLOYEE_EMAIL:-employee.demo@test.com}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-password123}
     ports:
       - "8000:8000"
     volumes:

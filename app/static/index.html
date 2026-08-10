@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CRM de Leads</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="app"></div>
+
+  <template id="auth-template">
+    <main class="auth-layout auth-layout-simple">
+      <section class="auth-card">
+        <div class="auth-heading">
+          <div class="brand compact-brand">
+            <span class="brand-mark">C</span>
+            <div>
+              <p class="eyebrow">CRM de Leads</p>
+              <h1>Iniciar sesión</h1>
+            </div>
+          </div>
+          <p class="muted auth-description">
+            Aplicación para registrar leads, asignarlos a responsables y hacer seguimiento por estado.
+          </p>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-auth-tab="login">Entrar</button>
+          <button class="tab" data-auth-tab="register">Crear cuenta</button>
+        </div>
+
+        <form id="login-form" class="auth-form">
+          <h2>Iniciar sesión</h2>
+          <p class="muted">Usa tu correo de acceso y contraseña.</p>
+
+          <label>
+            Correo
+            <input name="email" type="email" autocomplete="email" required placeholder="tu@email.com">
+          </label>
+
+          <label>
+            Contraseña
+            <input name="password" type="password" autocomplete="current-password" required placeholder="••••••••">
+          </label>
+
+          <button class="primary-button" type="submit">Entrar</button>
+
+          <div class="demo-box">
+            <p>¿Quieres probar sin crear cuenta?</p>
+            <div class="button-row">
+              <button class="secondary-button" type="button" data-demo-role="admin">Admin demo</button>
+              <button class="secondary-button" type="button" data-demo-role="employee">Empleado demo</button>
+            </div>
+          </div>
+        </form>
+
+        <form id="register-form" class="auth-form hidden">
+          <h2>Crear cuenta</h2>
+          <p class="muted">La cuenta nueva entra como empleado y puede gestionar sus propios leads.</p>
+
+          <label>
+            Nombre
+            <input name="nombre" type="text" required maxlength="100" placeholder="Nombre de la cuenta">
+          </label>
+
+          <label>
+            Correo de acceso
+            <input name="email" type="email" autocomplete="email" required placeholder="tu@email.com">
+          </label>
+
+          <label>
+            Contraseña
+            <input name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="mínimo 8 caracteres">
+          </label>
+
+          <button class="primary-button" type="submit">Crear cuenta y entrar</button>
+        </form>
+
+        <p id="auth-message" class="message" aria-live="polite"></p>
+      </section>
+    </main>
+  </template>
+
+  <template id="app-template">
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <span class="brand-mark">C</span>
+          <div>
+            <strong>CRM Leads</strong>
+            <small id="user-role-label">Cargando...</small>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-link active" data-view="dashboard">Dashboard</button>
+          <button class="nav-link" data-view="leads">Leads</button>
+          <button class="nav-link admin-only" data-view="users">Usuarios</button>
+        </nav>
+
+        <div class="profile-box">
+          <strong id="current-user-name">Usuario</strong>
+          <span id="current-user-email">correo</span>
+          <button class="ghost-button" id="logout-button" type="button">Cerrar sesión</button>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="section-eyebrow">Panel</p>
+            <h1 id="section-title">Dashboard</h1>
+          </div>
+          <button class="primary-button" id="new-lead-button" type="button">Nuevo lead</button>
+        </header>
+
+        <section id="dashboard-view" class="view"></section>
+        <section id="leads-view" class="view hidden"></section>
+        <section id="users-view" class="view hidden"></section>
+      </main>
+    </div>
+
+    <div id="modal-root"></div>
+    <div id="toast" class="toast hidden"></div>
+  </template>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

@@ -105,3 +105,25 @@ def test_refresh_with_invalid_token_returns_401(client: TestClient):
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Refresh token inválido"
+
+
+def test_get_me_returns_current_user(
+    client: TestClient,
+    employee_headers: dict[str, str],
+    employee_user,
+):
+    response = client.get(
+        "/me",
+        headers=employee_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == employee_user.id
+    assert response.json()["email"] == employee_user.email
+
+
+def test_demo_login_is_disabled_by_default(client: TestClient):
+    response = client.post("/demo/login/admin")
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Demo no habilitada"

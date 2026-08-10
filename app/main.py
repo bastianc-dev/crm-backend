@@ -1,15 +1,19 @@
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.core.logging import configure_logging
-from app.routers import auth, leads, users
+from app.routers import auth, dashboard, demo, leads, users
 
 
 configure_logging()
 
 logger = logging.getLogger(__name__)
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
 app = FastAPI(
@@ -35,11 +39,27 @@ async def unhandled_exception_handler(
     )
 
 
+app.mount(
+    "/static",
+    StaticFiles(directory=STATIC_DIR),
+    name="static",
+)
+
 app.include_router(auth.router)
+app.include_router(demo.router)
 app.include_router(users.router)
 app.include_router(leads.router)
+app.include_router(dashboard.router)
 
 
-@app.get("/")
-def root() -> dict[str, str]:
+@app.get(
+    "/",
+    include_in_schema=False,
+)
+def frontend() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/api/health")
+def health() -> dict[str, str]:
     return {"message": "CRM API is running"}

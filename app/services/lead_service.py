@@ -7,6 +7,7 @@ from app.models.lead import Lead
 from app.models.user import User
 from app.repositories import lead_repository, user_repository
 from app.schemas.lead import LeadCreate, LeadUpdate
+from app.services import demo_service
 
 
 class LeadNotFoundError(Exception):
@@ -24,6 +25,7 @@ class PermissionDeniedError(Exception):
 class InvalidLeadStatusFilterError(Exception):
     pass
 
+
 class InvalidDateRangeFilterError(Exception):
     pass
 
@@ -37,13 +39,6 @@ LEAD_STATUS_MAP = {
     "ganado": "Ganado",
     "perdido": "Perdido",
 }
-
-
-def _user_can_access_lead(user: User, lead: Lead) -> bool:
-    if user.rol == "admin":
-        return True
-
-    return lead.assigned_user_id == user.id
 
 
 def _normalize_estado_filter(estado: str | None) -> str | None:
@@ -61,6 +56,7 @@ def _normalize_estado_filter(estado: str | None) -> str | None:
         raise InvalidLeadStatusFilterError
 
     return normalized_estado
+
 
 def _build_created_at_range(
     created_from: date | None,
@@ -90,21 +86,56 @@ def _build_created_at_range(
     return start_datetime, end_datetime
 
 
+def _lead_belongs_to_demo_scope(db: Session, lead: Lead) -> bool:
+    return lead.assigned_user_id in demo_service.get_demo_user_ids(db)
+
+
+def _user_can_access_lead(db: Session, user: User, lead: Lead) -> bool:
+    if demo_service.is_demo_admin(user):
+        return _lead_belongs_to_demo_scope(db, lead)
+
+    if user.rol == "admin":
+        return True
+
+    return lead.assigned_user_id == user.id
+
+
+def _validate_demo_admin_assigned_user(
+    db: Session,
+    current_user: User,
+    assigned_user_id: int,
+) -> None:
+    if demo_service.is_demo_admin(current_user):
+        if not demo_service.is_demo_user_id(db, assigned_user_id):
+            raise PermissionDeniedError
+
+
 def create_lead(
     db: Session,
     lead_data: LeadCreate,
     current_user: User,
 ) -> Lead:
+    assigned_user_id = lead_data.assigned_user_id
+
+    if assigned_user_id is None:
+        assigned_user_id = current_user.id
+
     assigned_user = user_repository.get_user_by_id(
         db,
-        lead_data.assigned_user_id,
+        assigned_user_id,
     )
 
     if assigned_user is None:
         raise AssignedUserNotFoundError
 
-    if current_user.rol != "admin" and lead_data.assigned_user_id != current_user.id:
+    if current_user.rol != "admin" and assigned_user_id != current_user.id:
         raise PermissionDeniedError
+
+    _validate_demo_admin_assigned_user(
+        db,
+        current_user,
+        assigned_user_id,
+    )
 
     lead = Lead(
         nombre=lead_data.nombre,
@@ -112,9 +143,9 @@ def create_lead(
         telefono=lead_data.telefono,
         empresa=lead_data.empresa,
         cargo=lead_data.cargo,
-        estado="Nuevo",
+        estado=lead_data.estado,
         notas=lead_data.notas,
-        assigned_user_id=lead_data.assigned_user_id,
+        assigned_user_id=assigned_user_id,
     )
 
     return lead_repository.create_lead(db, lead)
@@ -136,11 +167,25 @@ def get_leads(
 ) -> dict:
     normalized_estado = _normalize_estado_filter(estado)
     created_from_datetime, created_to_datetime = _build_created_at_range(
-    created_from,
-    created_to,
-)
+        created_from,
+        created_to,
+    )
 
-    if current_user.rol == "admin":
+    assigned_user_id = None
+    assigned_user_ids = None
+
+    if demo_service.is_demo_admin(current_user):
+        demo_user_ids = demo_service.get_demo_user_ids(db)
+
+        if usuario is not None:
+            if usuario not in demo_user_ids:
+                raise PermissionDeniedError
+
+            assigned_user_id = usuario
+        else:
+            assigned_user_ids = demo_user_ids
+
+    elif current_user.rol == "admin":
         assigned_user_id = usuario
 
     else:
@@ -158,6 +203,7 @@ def get_leads(
         search=search,
         estado=normalized_estado,
         assigned_user_id=assigned_user_id,
+        assigned_user_ids=assigned_user_ids,
         empresa=empresa,
         created_from=created_from_datetime,
         created_to=created_to_datetime,
@@ -186,7 +232,7 @@ def get_lead_by_id(
     if lead is None:
         raise LeadNotFoundError
 
-    if not _user_can_access_lead(current_user, lead):
+    if not _user_can_access_lead(db, current_user, lead):
         raise PermissionDeniedError
 
     return lead
@@ -203,7 +249,7 @@ def update_lead(
     if lead is None:
         raise LeadNotFoundError
 
-    if not _user_can_access_lead(current_user, lead):
+    if not _user_can_access_lead(db, current_user, lead):
         raise PermissionDeniedError
 
     update_data = lead_data.model_dump(exclude_unset=True)
@@ -223,6 +269,12 @@ def update_lead(
         if assigned_user is None:
             raise AssignedUserNotFoundError
 
+        _validate_demo_admin_assigned_user(
+            db,
+            current_user,
+            update_data["assigned_user_id"],
+        )
+
     return lead_repository.update_lead(db, lead, update_data)
 
 
@@ -236,7 +288,8 @@ def delete_lead(
     if lead is None:
         raise LeadNotFoundError
 
-    if current_user.rol != "admin":
+    if not _user_can_access_lead(db, current_user, lead):
         raise PermissionDeniedError
 
     lead_repository.delete_lead(db, lead)
+    

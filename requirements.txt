@@ -10,5 +10,5 @@ email-validator
 PyJWT
 python-multipart
 pytest
-httpx2
+httpx
 pytest-cov

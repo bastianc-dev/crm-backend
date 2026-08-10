@@ -39,6 +39,7 @@ def _apply_filters(
     statement,
     estado: str | None = None,
     assigned_user_id: int | None = None,
+    assigned_user_ids: list[int] | None = None,
     empresa: str | None = None,
     created_from: datetime | None = None,
     created_to: datetime | None = None,
@@ -48,6 +49,9 @@ def _apply_filters(
 
     if assigned_user_id is not None:
         statement = statement.where(Lead.assigned_user_id == assigned_user_id)
+
+    if assigned_user_ids is not None:
+        statement = statement.where(Lead.assigned_user_id.in_(assigned_user_ids))
 
     if empresa is not None:
         empresa = empresa.strip()
@@ -81,6 +85,7 @@ def _build_filtered_leads_statement(
     search: str | None = None,
     estado: str | None = None,
     assigned_user_id: int | None = None,
+    assigned_user_ids: list[int] | None = None,
     empresa: str | None = None,
     created_from: datetime | None = None,
     created_to: datetime | None = None,
@@ -93,6 +98,7 @@ def _build_filtered_leads_statement(
         statement,
         estado=estado,
         assigned_user_id=assigned_user_id,
+        assigned_user_ids=assigned_user_ids,
         empresa=empresa,
         created_from=created_from,
         created_to=created_to,
@@ -112,6 +118,7 @@ def get_leads(
     search: str | None = None,
     estado: str | None = None,
     assigned_user_id: int | None = None,
+    assigned_user_ids: list[int] | None = None,
     empresa: str | None = None,
     created_from: datetime | None = None,
     created_to: datetime | None = None,
@@ -122,6 +129,7 @@ def get_leads(
         search=search,
         estado=estado,
         assigned_user_id=assigned_user_id,
+        assigned_user_ids=assigned_user_ids,
         empresa=empresa,
         created_from=created_from,
         created_to=created_to,

@@ -220,7 +220,7 @@ def test_admin_can_delete_lead(
     assert get_response.status_code == 404
 
 
-def test_employee_cannot_delete_lead(
+def test_employee_can_delete_own_lead(
     client: TestClient,
     employee_headers: dict[str, str],
     lead_for_employee,
@@ -230,4 +230,52 @@ def test_employee_cannot_delete_lead(
         headers=employee_headers,
     )
 
+    assert response.status_code == 204
+
+    get_response = client.get(
+        f"/leads/{lead_for_employee.id}",
+        headers=employee_headers,
+    )
+
+    assert get_response.status_code == 404
+
+
+def test_employee_cannot_delete_other_employee_lead(
+    client: TestClient,
+    employee_headers: dict[str, str],
+    lead_for_other_employee,
+):
+    response = client.delete(
+        f"/leads/{lead_for_other_employee.id}",
+        headers=employee_headers,
+    )
+
     assert response.status_code == 403
+    assert response.json()["detail"] == "No tienes permisos"
+
+
+def test_employee_can_create_own_lead_without_assigned_user_id(
+    client: TestClient,
+    employee_headers: dict[str, str],
+    employee_user,
+):
+    response = client.post(
+        "/leads",
+        headers=employee_headers,
+        json={
+            "nombre": "Lead Sin Id Visible",
+            "email": "lead.sin.id@test.com",
+            "telefono": "+56966666666",
+            "empresa": "Empresa UX",
+            "cargo": "Founder",
+            "estado": "Interesado",
+            "notas": "Creado sin enviar assigned_user_id.",
+        },
+    )
+
+    assert response.status_code == 201
+
+    data = response.json()
+
+    assert data["assigned_user_id"] == employee_user.id
+    assert data["estado"] == "Interesado"
