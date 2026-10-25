@@ -42,12 +42,12 @@
             </p>
           </div>
 
-          <div class="tabs">
-            <button class="tab active" data-auth-tab="login">Entrar</button>
-            <button class="tab" data-auth-tab="register">Crear cuenta</button>
+          <div class="tabs" role="tablist" aria-label="Acceso a la cuenta">
+            <button class="tab active" type="button" id="tab-login" role="tab" aria-controls="login-form" aria-selected="true" tabindex="0" data-auth-tab="login">Entrar</button>
+            <button class="tab" type="button" id="tab-register" role="tab" aria-controls="register-form" aria-selected="false" tabindex="-1" data-auth-tab="register">Crear cuenta</button>
           </div>
 
-          <form id="login-form" class="auth-form">
+          <form id="login-form" class="auth-form" role="tabpanel" aria-labelledby="tab-login">
             <label>
               Correo
               <input name="email" type="email" autocomplete="email" required placeholder="tu@email.com">
@@ -69,7 +69,7 @@
             </div>
           </form>
 
-          <form id="register-form" class="auth-form hidden">
+          <form id="register-form" class="auth-form hidden" role="tabpanel" aria-labelledby="tab-register">
             <p class="muted">La cuenta nueva entra como empleado y puede gestionar sus propios leads.</p>
 
             <label>
@@ -106,8 +106,8 @@
           </div>
         </div>
 
-        <nav class="nav">
-          <button class="nav-link active" data-view="dashboard">Dashboard</button>
+        <nav class="nav" aria-label="Navegación principal">
+          <button class="nav-link active" data-view="dashboard" aria-current="page">Dashboard</button>
           <button class="nav-link" data-view="leads">Leads</button>
           <button class="nav-link admin-only" data-view="users">Usuarios</button>
         </nav>
@@ -125,19 +125,19 @@
         <header class="topbar">
           <div>
             <p class="eyebrow" id="section-eyebrow">Panel</p>
-            <h1 id="section-title">Dashboard</h1>
+            <h1 id="section-title" aria-live="polite">Dashboard</h1>
           </div>
           <button class="primary-button" id="new-lead-button" type="button">Nuevo lead</button>
         </header>
 
-        <section id="dashboard-view" class="view"></section>
-        <section id="leads-view" class="view hidden"></section>
-        <section id="users-view" class="view hidden"></section>
+        <section id="dashboard-view" class="view" aria-label="Resumen del dashboard"></section>
+        <section id="leads-view" class="view hidden" aria-label="Gestión de leads"></section>
+        <section id="users-view" class="view hidden" aria-label="Gestión de usuarios"></section>
       </main>
     </div>
 
     <div id="modal-root"></div>
-    <div id="toast" class="toast hidden"></div>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
   </template>
 
   <script src="/static/app.js" defer></script>

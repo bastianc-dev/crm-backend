@@ -733,3 +733,29 @@ select:focus {
 @media (max-width: 520px) {
   .card-grid { grid-template-columns: 1fr; }
 }
+
+/* Focus and screen-reader support */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.filter-field { min-width: 0; display: block; }
+
+button:focus-visible,
+[role="tab"]:focus-visible,
+.nav-link:focus-visible {
+  outline: 3px solid #84adff;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  input, select, textarea, button { transition: none; }
+}

@@ -106,10 +106,12 @@ async function apiRequest(path, options = {}) {
     headers["Content-Type"] = "application/json";
   }
 
-  const response = await fetch(path, {
-    ...options,
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(path, { ...options, headers });
+  } catch {
+    throw new Error("No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.");
+  }
 
   let data = null;
   const rawBody = await response.text();
@@ -193,17 +195,30 @@ function renderAuth(message = "") {
 
   authMessage.textContent = message;
 
-  document.querySelectorAll("[data-auth-tab]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const selectedTab = button.dataset.authTab;
+  const authTabs = [...document.querySelectorAll("[data-auth-tab]")];
 
-      document.querySelectorAll("[data-auth-tab]").forEach((tab) => {
-        tab.classList.toggle("active", tab.dataset.authTab === selectedTab);
-      });
+  function selectAuthTab(selectedTab, focusTab = false) {
+    authTabs.forEach((tab) => {
+      const selected = tab.dataset.authTab === selectedTab;
+      tab.classList.toggle("active", selected);
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      if (selected && focusTab) tab.focus();
+    });
 
-      loginForm.classList.toggle("hidden", selectedTab !== "login");
-      registerForm.classList.toggle("hidden", selectedTab !== "register");
-      authMessage.textContent = "";
+    loginForm.classList.toggle("hidden", selectedTab !== "login");
+    registerForm.classList.toggle("hidden", selectedTab !== "register");
+    authMessage.textContent = "";
+  }
+
+  authTabs.forEach((button, index) => {
+    button.addEventListener("click", () => selectAuthTab(button.dataset.authTab));
+    button.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const next = event.key === "Home" ? 0 : event.key === "End" ? authTabs.length - 1
+        : (index + (event.key === "ArrowRight" ? 1 : -1) + authTabs.length) % authTabs.length;
+      selectAuthTab(authTabs[next].dataset.authTab, true);
     });
   });
 
@@ -306,7 +321,10 @@ async function showView(viewName) {
   state.currentView = viewName;
 
   document.querySelectorAll("[data-view]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.view === viewName);
+    const active = button.dataset.view === viewName;
+    button.classList.toggle("active", active);
+    if (active) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
   });
 
   document.querySelectorAll(".view").forEach((view) => {
@@ -412,7 +430,7 @@ function renderPipeline(leads) {
             <article class="lead-card">
               <strong>${escapeHtml(lead.nombre)}</strong>
               <p>${escapeHtml(lead.empresa || "Sin empresa")}</p>
-              <button class="icon-button" type="button" data-open-lead="${lead.id}">Ver</button>
+              <button class="icon-button" type="button" aria-label="Ver lead ${escapeHtml(lead.nombre)}" data-open-lead="${lead.id}">Ver</button>
             </article>
           `).join("") || `<p class="muted">Sin leads.</p>`}
         </div>
@@ -431,19 +449,19 @@ async function renderLeads() {
     view.innerHTML = `
       <section class="panel">
         <div class="toolbar">
-          <input id="filter-search" value="${escapeHtml(state.filters.search)}" placeholder="Buscar por nombre, correo, empresa o teléfono">
-          <select id="filter-status">
+          <label class="filter-field"><span class="sr-only">Buscar leads</span><input id="filter-search" type="search" value="${escapeHtml(state.filters.search)}" placeholder="Buscar nombre, correo, empresa o teléfono"></label>
+          <label class="filter-field"><span class="sr-only">Filtrar por estado</span><select id="filter-status">
             <option value="">Todos los estados</option>
             ${STATUSES.map((status) => `<option value="${status}" ${state.filters.estado === status ? "selected" : ""}>${status}</option>`).join("")}
-          </select>
-          <input id="filter-company" value="${escapeHtml(state.filters.empresa)}" placeholder="Empresa">
-          <input id="filter-from" type="date" value="${escapeHtml(state.filters.created_from)}">
-          <input id="filter-to" type="date" value="${escapeHtml(state.filters.created_to)}">
-          <select id="filter-sort">
+          </select></label>
+          <label class="filter-field"><span class="sr-only">Filtrar por empresa</span><input id="filter-company" value="${escapeHtml(state.filters.empresa)}" placeholder="Empresa"></label>
+          <label class="filter-field"><span class="sr-only">Fecha de creación desde</span><input id="filter-from" type="date" value="${escapeHtml(state.filters.created_from)}"></label>
+          <label class="filter-field"><span class="sr-only">Fecha de creación hasta</span><input id="filter-to" type="date" value="${escapeHtml(state.filters.created_to)}"></label>
+          <label class="filter-field"><span class="sr-only">Ordenar por</span><select id="filter-sort">
             <option value="updated_at" ${state.filters.sort === "updated_at" ? "selected" : ""}>Última actualización</option>
             <option value="created_at" ${state.filters.sort === "created_at" ? "selected" : ""}>Fecha creación</option>
             <option value="name" ${state.filters.sort === "name" ? "selected" : ""}>Nombre</option>
-          </select>
+          </select></label>
         </div>
 
         ${data.items.length ? renderLeadTable(data.items) : renderEmptyLeads()}
@@ -474,12 +492,12 @@ function renderLeadTable(leads) {
       <table class="data-table">
         <thead>
           <tr>
-            <th>Lead</th>
-            <th>Estado</th>
-            <th>Empresa</th>
-            <th>Responsable</th>
-            <th>Actualizado</th>
-            <th></th>
+            <th scope="col">Lead</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Empresa</th>
+            <th scope="col">Responsable</th>
+            <th scope="col">Actualizado</th>
+            <th scope="col">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -495,9 +513,9 @@ function renderLeadTable(leads) {
               <td>${formatDate(lead.updated_at)}</td>
               <td>
                 <div class="actions">
-                  <button class="icon-button" type="button" data-open-lead="${lead.id}">Ver</button>
-                  <button class="icon-button" type="button" data-edit-lead="${lead.id}">Editar</button>
-                  ${state.user.rol === "admin" || lead.assigned_user_id === state.user.id ? `<button class="danger-button" type="button" data-delete-lead="${lead.id}">Eliminar</button>` : ""}
+                  <button class="icon-button" type="button" aria-label="Ver lead ${escapeHtml(lead.nombre)}" data-open-lead="${lead.id}">Ver</button>
+                  <button class="icon-button" type="button" aria-label="Editar lead ${escapeHtml(lead.nombre)}" data-edit-lead="${lead.id}">Editar</button>
+                  ${state.user.rol === "admin" || lead.assigned_user_id === state.user.id ? `<button class="danger-button" type="button" aria-label="Eliminar lead ${escapeHtml(lead.nombre)}" data-delete-lead="${lead.id}">Eliminar</button>` : ""}
                 </div>
               </td>
             </tr>
@@ -521,9 +539,20 @@ function renderPagination(data) {
 }
 
 function bindLeadFilters() {
-  const updateAndRender = () => {
+  const updateAndRender = async () => {
+    const currentInput = document.activeElement;
+    const inputId = currentInput?.id;
+    const position = typeof currentInput?.selectionStart === "number"
+      ? [currentInput.selectionStart, currentInput.selectionEnd] : null;
     state.page = 1;
-    renderLeads();
+    await renderLeads();
+    const nextInput = inputId ? document.getElementById(inputId) : null;
+    if (nextInput) {
+      nextInput.focus();
+      if (position && typeof nextInput.setSelectionRange === "function") {
+        nextInput.setSelectionRange(...position);
+      }
+    }
   };
 
   document.querySelector("#filter-search")?.addEventListener("input", debounce((event) => {
@@ -774,11 +803,11 @@ async function renderUsers() {
           <table class="data-table">
             <thead>
               <tr>
-                <th>Nombre</th>
-                <th>Correo</th>
-                <th>Rol</th>
-                <th>Estado</th>
-                <th></th>
+                <th scope="col">Nombre</th>
+                <th scope="col">Correo</th>
+                <th scope="col">Rol</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -790,8 +819,8 @@ async function renderUsers() {
                   <td>${user.activo ? "Activo" : "Inactivo"}</td>
                   <td>
                     <div class="actions">
-                      <button class="icon-button" type="button" data-edit-user="${user.id}">Editar</button>
-                      ${user.id === state.user.id ? `<span class="muted">Tu cuenta</span>` : user.activo ? `<button class="danger-button" type="button" data-deactivate-user="${user.id}">Desactivar</button>` : ""}
+                      <button class="icon-button" type="button" aria-label="Editar usuario ${escapeHtml(user.nombre)}" data-edit-user="${user.id}">Editar</button>
+                      ${user.id === state.user.id ? `<span class="muted">Tu cuenta</span>` : user.activo ? `<button class="danger-button" type="button" aria-label="Desactivar usuario ${escapeHtml(user.nombre)}" data-deactivate-user="${user.id}">Desactivar</button>` : ""}
                     </div>
                   </td>
                 </tr>
@@ -925,26 +954,64 @@ function openUserModal(user = null) {
   });
 }
 
+let modalReturnFocus = null;
+
+function handleModalKeys(event) {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeModal();
+    return;
+  }
+
+  if (event.key !== "Tab") return;
+  const dialog = document.querySelector("#modal-root .modal-card");
+  if (!dialog) return;
+  const focusable = [...dialog.querySelectorAll(
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )].filter((element) => element.getClientRects().length > 0);
+  if (!focusable.length) {
+    event.preventDefault();
+    dialog.focus();
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
 function openModal(content) {
+  modalReturnFocus = document.activeElement;
   document.querySelector("#modal-root").innerHTML = `
     <div class="modal-backdrop">
-      <div class="modal-card">${content}</div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">${content}</div>
     </div>
   `;
 
-  document.querySelectorAll("[data-close-modal]").forEach((button) => {
+  const dialog = document.querySelector("#modal-root .modal-card");
+  const title = dialog.querySelector("h2");
+  if (title) title.id = "modal-title";
+
+  dialog.querySelectorAll("[data-close-modal]").forEach((button) => {
     button.addEventListener("click", closeModal);
   });
-
   document.querySelector(".modal-backdrop").addEventListener("click", (event) => {
-    if (event.target.classList.contains("modal-backdrop")) {
-      closeModal();
-    }
+    if (event.target.classList.contains("modal-backdrop")) closeModal();
   });
+  document.addEventListener("keydown", handleModalKeys);
+  (dialog.querySelector("[data-close-modal]") || dialog).focus();
 }
 
 function closeModal() {
+  document.removeEventListener("keydown", handleModalKeys);
   document.querySelector("#modal-root").innerHTML = "";
+  if (modalReturnFocus?.isConnected) modalReturnFocus.focus();
+  modalReturnFocus = null;
 }
 
 function debounce(callback, delay) {
@@ -960,9 +1027,13 @@ document.addEventListener("click", async (event) => {
   const target = event.target.closest("[data-open-lead]");
   if (!target || !state.user) return;
 
-  const lead = await apiRequest(`/leads/${target.dataset.openLead}`);
-  await loadUsersIfNeeded();
-  openLeadDetail(lead);
+  try {
+    const lead = await apiRequest(`/leads/${target.dataset.openLead}`);
+    await loadUsersIfNeeded();
+    openLeadDetail(lead);
+  } catch (error) {
+    showToast(error.message);
+  }
 });
 
 loadSession();

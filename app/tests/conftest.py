@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -12,6 +14,10 @@ from app.models import Lead, User
 
 if settings.test_database_url is None:
     raise RuntimeError("TEST_DATABASE_URL no está configurada en .env")
+
+# The fixtures drop and recreate tables. Avoid deleting application data locally.
+if not os.getenv("CI") and settings.database_url == settings.test_database_url:
+    raise RuntimeError("TEST_DATABASE_URL debe usar una base distinta de DATABASE_URL")
 
 
 test_engine = create_engine(settings.test_database_url)
